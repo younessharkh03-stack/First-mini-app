@@ -3,43 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>متجر النجوم المصغر</title>
+  <title>متجري المصغر</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background-color: var(--tg-theme-bg-color, #0f0f0f);
+      background-color: var(--tg-theme-bg-color, #121212);
       color: var(--tg-theme-text-color, #ffffff);
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    h2 { text-align: center; margin-bottom: 20px; font-size: 22px; }
+    
+    /* شبكة المنتجات */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+    
+    /* بطاقة المنتج */
+    .card {
+      background: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      border-radius: 14px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
       text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    .card {
-      background: var(--tg-theme-secondary-bg-color, #1a1a1a);
-      border-radius: 16px;
-      padding: 24px;
+    .card img {
       width: 100%;
-      max-width: 320px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.1);
+      height: 110px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 10px;
     }
-    h1 { font-size: 20px; margin-bottom: 8px; }
-    p { color: #888; font-size: 14px; margin-bottom: 20px; }
-    .price { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+    .card h3 { font-size: 15px; margin: 4px 0; }
+    .card p { font-size: 12px; color: #aaa; margin: 0 0 10px 0; }
+    .price { font-weight: bold; color: #ffb703; font-size: 14px; margin-bottom: 10px; }
+    
     button {
       background: #0088cc;
       color: white;
       border: none;
-      padding: 14px 28px;
-      font-size: 16px;
+      padding: 10px;
+      font-size: 13px;
       font-weight: bold;
-      border-radius: 12px;
+      border-radius: 8px;
       width: 100%;
       cursor: pointer;
     }
@@ -48,57 +61,89 @@
 </head>
 <body>
 
-  <h2 id="welcome">أهلاً بك! 👋</h2>
-  <p>هذا تطبيق تيليجرام مصغر جاهز للعمل.</p>
+  <h2 id="welcome">متجر المنتجات 🛍️</h2>
 
-  <div class="card">
-    <h3>شراء منتج تجريبي</h3>
-    <div class="price">السعر: 10 نجوم ⭐️</div>
-    <button id="buyBtn">شراء الآن ⭐️</button>
-  </div>
+  <!-- قائمة المنتجات ستظهر هنا -->
+  <div class="grid" id="productsGrid"></div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-      document.getElementById('welcome').innerText = `أهلاً بك، ${user.first_name}! 👋`;
-    }
+    // ضع رابط سيرفر Render الخاص بك هنا (بدون سلاش في النهاية)
+    const BACKEND_URL = "https://YOUR-RENDER-URL.onrender.com";
 
-    // 👈 ضع رابط Render الخاص بك هنا بدلاً من الرابط التوضيحي
-    const BACKEND_URL = "https://stars-backend-lj99.onrender.com";
+    // 📦 قائمة منتجاتك (يمكنك تعديل الصور، الأسماء، التفاصيل والأسعار)
+    const products = [
+      {
+        id: 1,
+        title: "اشتراك VIP",
+        desc: "وصول كامل لجميع الميزات المتقدمة",
+        price: 15,
+        img: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400"
+      },
+      {
+        id: 2,
+        title: "كورس برمجة",
+        desc: "تعلم بناء تطبيقات تيليجرام المصغرة",
+        price: 50,
+        img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400"
+      },
+      {
+        id: 3,
+        title: "تصميم شعار",
+        desc: "تصميم احترافي مخصص لحسابك",
+        price: 30,
+        img: "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400"
+      }
+    ];
 
-    document.getElementById('buyBtn').addEventListener('click', async () => {
+    // عرض المنتجات داخل الصفحة تلقائياً
+    const grid = document.getElementById('productsGrid');
+    products.forEach(p => {
+      grid.innerHTML += `
+        <div class="card">
+          <img src="${p.img}" alt="${p.title}">
+          <h3>${p.title}</h3>
+          <p>${p.desc}</p>
+          <div class="price">⭐️ ${p.price} نجمة</div>
+          <button onclick="buyProduct('${p.title}', ${p.price}, '${p.desc}')">شراء ⭐️</button>
+        </div>
+      `;
+    });
+
+    // دالة الشراء عند الضغط على أي منتج
+    async function buyProduct(title, price, desc) {
+      const user = tg.initDataUnsafe?.user;
+      
       try {
         const res = await fetch(`${BACKEND_URL}/create-stars-invoice`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user?.id,
-            stars: 10
+            title: title,
+            price: price,
+            description: desc
           })
         });
 
         const data = await res.json();
 
         if (data.invoiceLink) {
-          // فتح نافذة الدفع بالنجوم من تيليجرام
           tg.openInvoice(data.invoiceLink, (status) => {
             if (status === 'paid') {
-              tg.showAlert('تم الدفع وخصم النجوم بنجاح! ⭐️🎉');
-            } else {
-              tg.showAlert('تم إلغاء عملية الدفع.');
+              tg.showAlert(`تم شراء (${title}) بنجاح! ⭐️🎉`);
             }
           });
         } else {
-          tg.showAlert('حدث خطأ في جلب الفاتورة');
+          tg.showAlert('حدث خطأ أثناء جلب الفاتورة');
         }
       } catch (err) {
         tg.showAlert('تعذر الاتصال بالسيرفر');
       }
-    });
+    }
   </script>
 </body>
 </html>
