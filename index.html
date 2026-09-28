@@ -3,145 +3,489 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>متجري المصغر</title>
+  <title>متجر الخدمات الرقمية</title>
+  
+  <!-- استدعاء خط Cairo للعربية -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
+    :root {
+      --bg-color: #f5f2eb;          /* خلفية بيج رئيسية */
+      --card-bg: #ffffff;            /* خلفية الكروت */
+      --text-color: #2c2c2c;        /* لون النص */
+      --accent-color: #0088cc;       /* لون الزر الرئيسي */
+      --badge-bg: rgba(0, 0, 0, 0.75); /* الشريط التوضيحي */
+      --border-color: #e2ddd3;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+    }
+
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: var(--tg-theme-bg-color, #121212);
-      color: var(--tg-theme-text-color, #ffffff);
+      background-color: var(--bg-color);
+      color: var(--text-color);
       margin: 0;
       padding: 16px;
-      box-sizing: border-box;
+      direction: rtl;
+      text-align: right;
+      -webkit-tap-highlight-color: transparent;
     }
-    h2 { text-align: center; margin-bottom: 20px; font-size: 22px; }
-    
+
+    .header-title {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #3d3a34;
+    }
+
     /* شبكة المنتجات */
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 16px;
+      gap: 14px;
     }
-    
+
     /* بطاقة المنتج */
     .card {
-      background: var(--tg-theme-secondary-bg-color, #1e1e1e);
-      border-radius: 14px;
+      background: var(--card-bg);
+      border-radius: 16px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+      cursor: pointer;
+      transition: transform 0.15s ease;
     }
-    .card img {
+
+    .card:active {
+      transform: scale(0.97);
+    }
+
+    /* حاوية الصورة مع الشريط التوضيحي */
+    .img-container {
+      position: relative;
       width: 100%;
-      height: 110px;
-      object-fit: cover;
-      border-radius: 10px;
+      height: 120px;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #eae5dc;
       margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .card h3 { font-size: 15px; margin: 4px 0; }
-    .card p { font-size: 12px; color: #aaa; margin: 0 0 10px 0; }
-    .price { font-weight: bold; color: #ffb703; font-size: 14px; margin-bottom: 10px; }
-    
-    button {
-      background: #0088cc;
+
+    .img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 8px;
+    }
+
+    /* الشريط التوضيحي المكتوب فوق الصورة */
+    .image-badge {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--badge-bg);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 2px;
+      text-align: center;
+    }
+
+    .card h3 {
+      font-size: 14px;
+      margin: 4px 0 6px 0;
+      color: #2b2823;
+      font-weight: 700;
+    }
+
+    .card .starting-price {
+      font-size: 13px;
+      font-weight: 700;
+      color: #d97706;
+    }
+
+    /* النافذة المنبثقة التفصيلية (Modal) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active { 
+      display: flex; 
+    }
+
+    .modal-content {
+      background: #faf8f5;
+      width: 100%;
+      max-width: 500px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 20px;
+      max-height: 85vh;
+      overflow-y: auto;
+      border-top: 1px solid var(--border-color);
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .modal-header h3 { 
+      margin: 0; 
+      font-size: 17px; 
+      color: #2c2c2c;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: #e2ddd3;
+      border: none;
+      color: #444;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-img-container {
+      position: relative;
+      width: 100%;
+      height: 140px;
+      background-color: #eae5dc;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-img-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 10px;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    /* خيارات الاشتراك */
+    .options-label {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #3d3a34;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .option-card {
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .option-card.selected {
+      border-color: var(--accent-color);
+      background: #eaf5ff;
+    }
+
+    .option-title { font-size: 13px; font-weight: 600; }
+    .option-price { font-weight: 700; color: #d97706; font-size: 13px; }
+
+    /* حقل إدخال البيانات */
+    .input-group {
+      margin-bottom: 18px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #3d3a34;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #ffffff;
+      color: #2c2c2c;
+      outline: none;
+      /* تم ضبط الاتجاه لليسار لمنع التداخل بين الإنجليزية والعربية في اليوزر/الإيميل */
+      direction: ltr;
+      text-align: left;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent-color);
+    }
+
+    /* زر الشراء */
+    .buy-btn {
+      background: var(--accent-color);
       color: white;
       border: none;
-      padding: 10px;
-      font-size: 13px;
-      font-weight: bold;
-      border-radius: 8px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
       width: 100%;
       cursor: pointer;
     }
-    button:active { opacity: 0.8; }
   </style>
 </head>
 <body>
 
-  <h2 id="welcome">متجر المنتجات 🛍️</h2>
+  <div class="header-title">متجر الاشتراكات الرقمية 🛍️</div>
 
-  <!-- قائمة المنتجات ستظهر هنا -->
   <div class="grid" id="productsGrid"></div>
+
+  <!-- النافذة المنبثقة -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">اسم المنتج</h3>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-img-container">
+        <img id="modalImg" src="" alt="">
+        <div class="image-badge" id="modalBadge"></div>
+      </div>
+
+      <div id="modalDesc" class="modal-desc"></div>
+
+      <div id="optionsSection">
+        <div class="options-label">اختر الباقة المناسبة:</div>
+        <div class="options-grid" id="modalOptions"></div>
+      </div>
+
+      <div class="input-group">
+        <label id="inputLabel">معلومات الحساب:</label>
+        <input type="text" id="userInput" placeholder="">
+      </div>
+
+      <button class="buy-btn" id="modalBuyBtn" onclick="submitPurchase()">شراء بالنجوم ⭐️</button>
+    </div>
+  </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
 
-    // ضع رابط سيرفر Render الخاص بك هنا (بدون سلاش في النهاية)
-    const BACKEND_URL = "https://YOUR-RENDER-URL.onrender.com";
+    const BACKEND_URL = "https://stars-backend-lj99.onrender.com";
 
-    // 📦 قائمة منتجاتك (يمكنك تعديل الصور، الأسماء، التفاصيل والأسعار)
     const products = [
       {
-        id: 1,
-        title: "اشتراك VIP",
-        desc: "وصول كامل لجميع الميزات المتقدمة",
-        price: 15,
-        img: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400"
+        id: "x_premium",
+        title: "اشتراك اكس بريميوم",
+        badge: "عن طريق يوزر الحساب فقط",
+        desc: "تفعيل التوثيق الزرقاء، وزيادة الوصول للمنشورات مع خيارات تعديل التغريدات.",
+        img: "https://upload.wikimedia.org/wikipedia/commons/5/53/X_logo_2023_original.svg",
+        inputType: "username",
+        inputLabel: "أدخل اسم المستخدم (اليوزر):",
+        inputPlaceholder: "@example",
+        options: [
+          { label: "3 شهور", price: 60 },
+          { label: "6 شهور", price: 110 }
+        ]
       },
       {
-        id: 2,
-        title: "كورس برمجة",
-        desc: "تعلم بناء تطبيقات تيليجرام المصغرة",
-        price: 50,
-        img: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400"
+        id: "youtube_premium",
+        title: "يوتيوب بريميوم",
+        badge: "يفعل على ايميلك الشخصي",
+        desc: "مشاهدة الفيديو بدون إعلانات مع تشغيل في الخلفية واشتراك YouTube Music.",
+        img: "https://upload.wikimedia.org/wikipedia/commons/d/dd/YouTube_Premium_logo.svg",
+        inputType: "email",
+        inputLabel: "أدخل البريد الإلكتروني (الإيميل):",
+        inputPlaceholder: "example@gmail.com",
+        options: [
+          { label: "شهر واحد", price: 15 },
+          { label: "سنة كاملة", price: 120 }
+        ]
       },
       {
-        id: 3,
-        title: "تصميم شعار",
-        desc: "تصميم احترافي مخصص لحسابك",
-        price: 30,
-        img: "https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400"
+        id: "gemini_pro",
+        title: "جيميني برو 18 شهر",
+        badge: "يفعل على ايميلك الشخصي",
+        desc: "وصول كامل لأحدث نماذج Google Gemini Advanced مع مساحة تخزين سحابية.",
+        img: "https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg",
+        inputType: "email",
+        inputLabel: "أدخل البريد الإلكتروني (الإيميل):",
+        inputPlaceholder: "example@gmail.com",
+        options: [
+          { label: "اشتراك 18 شهر", price: 150 }
+        ]
       }
     ];
 
-    // عرض المنتجات داخل الصفحة تلقائياً
+    let selectedProduct = null;
+    let selectedOption = null;
+
     const grid = document.getElementById('productsGrid');
-    products.forEach(p => {
+    products.forEach((p, index) => {
+      const startPrice = p.options[0].price;
       grid.innerHTML += `
-        <div class="card">
-          <img src="${p.img}" alt="${p.title}">
+        <div class="card" onclick="openModal(${index})">
+          <div class="img-container">
+            <img src="${p.img}" alt="${p.title}">
+            <div class="image-badge">${p.badge}</div>
+          </div>
           <h3>${p.title}</h3>
-          <p>${p.desc}</p>
-          <div class="price">⭐️ ${p.price} نجمة</div>
-          <button onclick="buyProduct('${p.title}', ${p.price}, '${p.desc}')">شراء ⭐️</button>
+          <div class="starting-price">⭐️ ${startPrice} نجمة</div>
         </div>
       `;
     });
 
-    // دالة الشراء عند الضغط على أي منتج
-    async function buyProduct(title, price, desc) {
-      const user = tg.initDataUnsafe?.user;
-      
+    function openModal(index) {
+      selectedProduct = products[index];
+      selectedOption = selectedProduct.options[0];
+
+      document.getElementById('modalTitle').innerText = selectedProduct.title;
+      document.getElementById('modalImg').src = selectedProduct.img;
+      document.getElementById('modalBadge').innerText = selectedProduct.badge;
+      document.getElementById('modalDesc').innerText = selectedProduct.desc;
+
+      document.getElementById('inputLabel').innerText = selectedProduct.inputLabel;
+      const inputEl = document.getElementById('userInput');
+      inputEl.value = '';
+      inputEl.placeholder = selectedProduct.inputPlaceholder;
+
+      const optionsSection = document.getElementById('optionsSection');
+      if (selectedProduct.options.length > 1) {
+        optionsSection.style.display = "block";
+        renderOptions();
+      } else {
+        optionsSection.style.display = "none";
+        updateBuyButton();
+      }
+
+      document.getElementById('productModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('productModal').classList.remove('active');
+    }
+
+    function renderOptions() {
+      const optionsContainer = document.getElementById('modalOptions');
+      optionsContainer.innerHTML = '';
+
+      selectedProduct.options.forEach((opt, idx) => {
+        const isSelected = selectedOption.label === opt.label;
+        optionsContainer.innerHTML += `
+          <div class="option-card ${isSelected ? 'selected' : ''}" onclick="selectOption(${idx})">
+            <span class="option-title">${opt.label}</span>
+            <span class="option-price">⭐️ ${opt.price}</span>
+          </div>
+        `;
+      });
+
+      updateBuyButton();
+    }
+
+    function selectOption(idx) {
+      selectedOption = selectedProduct.options[idx];
+      renderOptions();
+    }
+
+    function updateBuyButton() {
+      document.getElementById('modalBuyBtn').innerText = `شراء (${selectedOption.label}) بـ ⭐️ ${selectedOption.price}`;
+    }
+
+    async function submitPurchase() {
+      const userValue = document.getElementById('userInput').value.trim();
+
+      if (!userValue) {
+        tg.showAlert(selectedProduct.inputType === 'username' ? 'يرجى إدخال اسم المستخدم (اليوزر) أولاً!' : 'يرجى إدخال البريد الإلكتروني (الإيميل) أولاً!');
+        return;
+      }
+
+      const telegramUser = tg.initDataUnsafe?.user;
+      const fullItemTitle = `${selectedProduct.title} - [${selectedOption.label}]`;
+      const fullDescription = `بيانات التفعيل: ${userValue}`;
+
       try {
         const res = await fetch(`${BACKEND_URL}/create-stars-invoice`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user?.id,
-            title: title,
-            price: price,
-            description: desc
+            userId: telegramUser?.id,
+            title: fullItemTitle,
+            price: selectedOption.price,
+            description: fullDescription,
+            userData: userValue
           })
         });
 
         const data = await res.json();
 
         if (data.invoiceLink) {
+          closeModal();
           tg.openInvoice(data.invoiceLink, (status) => {
             if (status === 'paid') {
-              tg.showAlert(`تم شراء (${title}) بنجاح! ⭐️🎉`);
+              tg.showAlert(`تم الشراء بنجاح! 🎉\nبيانات الحساب: ${userValue}`);
             }
           });
         } else {
-          tg.showAlert('حدث خطأ أثناء جلب الفاتورة');
+          tg.showAlert('حدث خطأ أثناء إنشاء الفاتورة.');
         }
       } catch (err) {
-        tg.showAlert('تعذر الاتصال بالسيرفر');
+        tg.showAlert('تعذر الاتصال بالسيرفر.');
       }
     }
   </script>
